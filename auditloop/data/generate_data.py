@@ -349,5 +349,47 @@ def generate_data_cli():
     return 0
 
 
+def generate_all_datasets(
+    num_records: int = 50,
+    seed: int = 42,
+    messiness_factor: float = 0.25,
+    link_to_settlements: bool = False,
+    settlements_path: str = "data/settlements_live.csv",
+    output_dir: str = "data",
+    force_disagreement: bool = False
+):
+    """Programmatic API for generating all datasets.
+    
+    This function is used by the FastAPI endpoint to generate data.
+    
+    Args:
+        num_records: Number of records to generate
+        seed: Random seed for reproducibility
+        messiness_factor: Fraction of records with injected issues
+        link_to_settlements: Whether to link to real Razorpay settlements
+        settlements_path: Path to settlements CSV if linking
+        output_dir: Output directory for generated files
+        force_disagreement: Force at least one LLM/deterministic disagreement case
+    """
+    # Load settlements if available and requested
+    settlements_df = None
+    if link_to_settlements and os.path.exists(settlements_path):
+        settlements_df = pd.read_csv(settlements_path)
+        print(f"Loaded {len(settlements_df)} settlements from {settlements_path}")
+    else:
+        print("No settlements file found or linking disabled. Generating fully synthetic data.")
+    
+    generator = SyntheticDataGenerator(seed=seed, messiness_ratio=messiness_factor)
+    generator.generate(
+        num_records=num_records,
+        settlements_df=settlements_df,
+        output_dir=output_dir,
+        force_disagreement=force_disagreement
+    )
+    
+    return generator.ground_truth
+
+
 if __name__ == "__main__":
     exit(generate_data_cli())
+
